@@ -1,7 +1,7 @@
 -- Layouts
 -- v2.1.0
 -- http://projects.jga.me/layouts
--- copyright JGA 2013
+-- copyright JGA 2015
 -- MIT License
 
 
@@ -20,11 +20,20 @@ on explode(delimiter, input)
 end explode
 
 
+on getScreens()
+  set tmp to do shell script "PWD"
+  set myPath to POSIX path of (path to me) as string
+  set dirname to (do shell script "dirname \"" & myPath & "\"") as string
+  
+  set scrString to do shell script "\"" & dirname & "/screens\""
+  set scrRes to explode(",", scrString)
+
+  return scrRes
+end getScreens
+
 on getDisplayBounds()
   --TODO: multi monitor support
-  tell application "Finder"
-    set scrRes to bounds of window of desktop
-  end tell
+  set scrRes to getScreens()
   tell application "System Events"
     tell dock preferences
       set dockProperties to get properties
@@ -99,8 +108,8 @@ end findLayout
 
 on resize(theApp, theScreenBounds, theLayout)
 
-  tell application theApp
-    set appBounds to bounds of window 1
+  tell application "System Events" to tell application process theApp
+    set appBounds to get size of window 1
     set sx to item 1 of theScreenBounds
     set sy to item 2 of theScreenBounds
     set sw to (item 3 of theScreenBounds) - sx
@@ -110,7 +119,13 @@ on resize(theApp, theScreenBounds, theLayout)
     set x2 to sx + (sw * (x2Percentage of theLayout))
     set y2 to sy + (sh * (y2Percentage of theLayout))
     activate
-    set bounds of window 1 to { x1, y1, x2, y2 }
+		try
+			set bounds of window 1 to {x1, y1, x2, y2}
+		on error
+			tell window 1
+				set {position, size} to {{x1, y1}, {x2, y2}}
+			end tell
+		end try
   end tell
 end resize
 
